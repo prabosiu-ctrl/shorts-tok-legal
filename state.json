@@ -1,3 +1,31 @@
 {
-  "active_series": null
+  "active_series": {
+    "series_id": "series_20260409_234023",
+    "series_title": "The Spare Key",
+    "total_parts": 5,
+    "character_anchor": "Elias Vance: combat medic, scarred left cheek, missing two fingertips on his right hand, carries a faded green duffel bag.",
+    "ending": "",
+    "parts_generated": [
+      1,
+      2,
+      3
+    ],
+    "part_video_ids": [
+      [
+        "kfRj_IYH8JI",
+        "Part 1: The Locked Door"
+      ],
+      [
+        "SfjD6ZeOdYA",
+        "Part 2: The Auction"
+      ],
+      [
+        "AZyLVc3ilnc",
+        "Part 3: The Trade"
+      ]
+    ],
+    "longform_done": false,
+    "playlist_id": null,
+    "complete": false
+  }
 }

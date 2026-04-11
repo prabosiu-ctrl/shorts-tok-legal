@@ -159,7 +159,8 @@ def add_title_card(part_video: Path, series_title: str, part_num: int, total_par
         ], capture_output=True)
         final_clips.append(end_with_audio)
 
-    # Step 2: concat all clips
+    # Step 2: concat + transcode to clean YouTube-compatible H.264
+    # -c copy causes frame rate and pixel format issues; always re-encode.
     concat_file = work_dir / "titled_concat.txt"
     concat_file.write_text(
         "\n".join(f"file '{p.resolve().as_posix()}'" for p in final_clips),
@@ -169,12 +170,16 @@ def add_title_card(part_video: Path, series_title: str, part_num: int, total_par
         "ffmpeg", "-y",
         "-f", "concat", "-safe", "0",
         "-i", concat_file.resolve().as_posix(),
-        "-c", "copy",
+        "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+        "-vf", "fps=24,scale=576:1024:in_range=pc:out_range=tv:flags=lanczos,format=yuv420p",
+        "-pix_fmt", "yuv420p", "-color_range", "tv",
+        "-c:a", "aac", "-b:a", "192k",
+        "-movflags", "+faststart",
         str(out_path.resolve()),
     ], capture_output=True)
 
     if result.returncode != 0:
-        print(f"  Warning: title card concat failed, using plain video.")
+        print(f"  Warning: title card transcode failed, using plain video.")
         shutil.copy(part_video, out_path)
 
     return out_path
