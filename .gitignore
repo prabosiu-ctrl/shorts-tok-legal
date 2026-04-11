@@ -6,6 +6,9 @@ youtube_token.pickle
 nl_token.pickle
 client_secret_*.json
 output/
+test_*.jpg
+test_*.mp4
+=*.0.0
 __pycache__/
 *.pyc
 .venv/

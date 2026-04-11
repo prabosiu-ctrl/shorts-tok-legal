@@ -212,7 +212,7 @@ def assemble_longform(part_videos: list[Path], series_dir: Path) -> Path:
     return out_path
 
 
-def run_part(part_data: dict, part_dir: Path, series_title: str, part_num: int, total_parts: int, character_anchor: str = "", ending: str = "", use_veo: bool = False) -> Path:
+def run_part(part_data: dict, part_dir: Path, series_title: str, part_num: int, total_parts: int, character_anchor: str = "", ending: str = "", use_veo: bool = False, character_ref: Path = None) -> Path:
     """Run the full pipeline for a single part. Returns path to titled Short."""
     script = part_data["script"]
     print(f"\n  --- Part {part_num}: {part_data['title']} ---")
@@ -274,7 +274,9 @@ def run_part(part_data: dict, part_dir: Path, series_title: str, part_num: int, 
         image_paths = sorted(part_dir.glob("image_*.jpg"))
         if len(image_paths) != len(shots):
             print(f"  Generating {len(shots)} images (free)...")
-            image_paths = generate_images(shots, part_dir)
+            image_paths = generate_images(shots, part_dir,
+                                          character_ref=character_ref,
+                                          character_anchor=character_anchor)
         else:
             print(f"  Images already exist, skipping.")
 
@@ -354,7 +356,11 @@ def main():
 
     # Run pipeline for each part
     print(f"\n[2/3] Generating {total_parts} parts...")
-    titled_videos = []
+    titled_videos  = []
+    character_ref  = series_dir / "character_ref.jpg"
+    if not character_ref.exists():
+        character_ref = None  # will be set by image_generator on first character shot
+
     for part_data in parts:
         part_num = part_data["part"]
         part_dir = series_dir / f"part_{part_num}"
@@ -362,8 +368,18 @@ def main():
         titled_video = run_part(part_data, part_dir, series_title, part_num, total_parts,
                                character_anchor=series_data.get("character_anchor", ""),
                                ending=args.ending or "",
-                               use_veo=args.veo)
+                               use_veo=args.veo,
+                               character_ref=character_ref)
         titled_videos.append(titled_video)
+
+        # Persist the reference image to the series root for subsequent parts
+        if character_ref is None:
+            first_ref = sorted(part_dir.glob("image_000.jpg"))
+            if first_ref:
+                import shutil as _shutil
+                character_ref = series_dir / "character_ref.jpg"
+                _shutil.copy(first_ref[0], character_ref)
+                print(f"  Character reference saved: character_ref.jpg")
 
     # Assemble long-form
     print(f"\n[3/3] Assembling long-form video...")

@@ -93,6 +93,57 @@ RESPONSE FORMAT — valid JSON only, no markdown fences:
 }"""
 
 
+CONTINUITY_PROMPT = """You are a story editor. Read these 5 script parts and identify continuity errors.
+
+Check for:
+1. Character name inconsistencies (same person called different names)
+2. Physical description changes (hair, age, clothing that contradicts earlier)
+3. Timeline errors (events out of order, impossible time jumps)
+4. Setting contradictions (location described differently)
+5. Factual contradictions (relationship or object described differently across parts)
+
+Return valid JSON only:
+{
+  "is_consistent": true,
+  "issues": ["specific issue 1", "specific issue 2"]
+}
+
+If no issues, return {"is_consistent": true, "issues": []}"""
+
+
+def check_continuity(series_data: dict) -> tuple[bool, list[str]]:
+    """
+    Validates character and plot consistency across all 5 parts.
+    Returns (is_consistent, list_of_issues).
+    """
+    api_key = os.environ.get("GOOGLE_API_KEY", "")
+    if not api_key:
+        return True, []
+
+    client = genai.Client(api_key=api_key)
+
+    scripts_text = "\n\n".join(
+        f"PART {p['part']}: {p['title']}\n{p['script']}"
+        for p in series_data.get("parts", [])
+    )
+
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=scripts_text,
+            config=types.GenerateContentConfig(
+                system_instruction=CONTINUITY_PROMPT,
+                temperature=0.1,
+                response_mime_type="application/json",
+            ),
+        )
+        result = json.loads(response.text)
+        return result.get("is_consistent", True), result.get("issues", [])
+    except Exception as e:
+        print(f"      Continuity check failed ({e}) — skipping.")
+        return True, []
+
+
 def generate_series(theme: str = None, ending: str = None) -> dict:
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
@@ -107,24 +158,39 @@ def generate_series(theme: str = None, ending: str = None) -> dict:
 
     prompt = f"Theme: {theme}\nEnding type: {ending}\n\nWrite the 5-part series now."
 
-    response = client.models.generate_content(
-        model="gemini-3.1-pro-preview",
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            temperature=0.92,
-            response_mime_type="application/json",
-        ),
-    )
+    for attempt in range(3):
+        response = client.models.generate_content(
+            model="gemini-3.1-pro-preview",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                temperature=0.92,
+                response_mime_type="application/json",
+            ),
+        )
 
-    try:
-        data = json.loads(response.text)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Gemini returned invalid JSON: {e}\n\nRaw:\n{response.text}")
+        try:
+            data = json.loads(response.text)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Gemini returned invalid JSON: {e}\n\nRaw:\n{response.text}")
 
-    parts = data.get("parts", [])
-    if len(parts) != 5:
-        raise ValueError(f"Expected 5 parts, got {len(parts)}")
+        parts = data.get("parts", [])
+        if len(parts) != 5:
+            raise ValueError(f"Expected 5 parts, got {len(parts)}")
+
+        # Continuity check — regenerate up to 2 extra times if issues found
+        print(f"      Checking continuity...")
+        is_consistent, issues = check_continuity(data)
+        if is_consistent:
+            print(f"      Continuity: OK")
+            break
+        print(f"      Continuity issues found:")
+        for issue in issues:
+            print(f"        - {issue}")
+        if attempt < 2:
+            print(f"      Regenerating series (attempt {attempt + 2}/3)...")
+        else:
+            print(f"      Proceeding despite continuity issues.")
 
     print(f"      Series: {data.get('series_title')}")
     print(f"      Anchor: {data.get('character_anchor', '')[:80]}")

@@ -28,28 +28,57 @@ def get_youtube_service():
     return build("youtube", "v3", credentials=creds)
 
 
-def generate_metadata(script: str) -> dict:
-    """Use Gemini to generate a title, description, and tags from the script."""
+def generate_metadata(
+    script: str,
+    series_title: str = "",
+    part_num: int = 0,
+    total_parts: int = 5,
+    is_short: bool = True,
+) -> dict:
+    """
+    Generate CTR-optimised YouTube metadata using Gemini.
+
+    Produces an emotionally charged title, scroll-stopping description,
+    and 12-15 targeted tags mixing broad emotion, story-type, and format keywords.
+    """
     api_key = os.environ.get("GOOGLE_API_KEY")
     client = genai.Client(api_key=api_key)
 
-    prompt = f"""Given this short story narration script, generate YouTube metadata.
+    context = ""
+    next_part_ref = ""
+    if series_title and part_num:
+        context = f"Series: '{series_title}' | This is Part {part_num} of {total_parts}\n\n"
+        next_part = part_num + 1
+        next_part_ref = (
+            f"Follow for Part {next_part}." if part_num < total_parts
+            else "Watch the full series in the playlist."
+        )
 
-Script:
+    format_note = "YouTube Short (vertical, under 60 seconds)" if is_short else "YouTube long-form video"
+
+    prompt = f"""{context}Script:
 {script}
+
+Generate highly optimised YouTube metadata for a {format_note}.
+Think like a viral content creator AND an SEO expert.
+
+Rules:
+- Title: Lead with the emotional hook — what the viewer FEELS, not what happens. Under 60 chars. Title case. No ALL CAPS. No "Part X" prefix.
+- Description: First sentence is a scroll-stopper (stakes or question). Second expands intrigue without spoiling. Third is a CTA: "{next_part_ref or 'Follow for more.'}" End with a line break then hashtags.
+- Tags: 12-15 tags. Mix: 2-3 broad emotion tags (e.g. "grief", "betrayal"), 3-4 story-type tags (e.g. "short story", "drama"), 3-4 format tags (e.g. "youtube shorts story", "ai short film"), 2-3 niche tags specific to this story.
 
 Return valid JSON only:
 {{
-  "title": "A punchy, emotional title under 60 characters. No clickbait, no ALL CAPS.",
-  "description": "2-3 sentence summary that hints at the story without spoiling it. End with relevant hashtags: #Shorts #AIStory #ShortFilm",
-  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
+  "title": "...",
+  "description": "...",
+  "tags": ["tag1", "tag2", ...]
 }}"""
 
     response = client.models.generate_content(
-        model="gemini-3.1-pro-preview",
+        model="gemini-2.5-flash",
         contents=prompt,
         config=types.GenerateContentConfig(
-            temperature=0.7,
+            temperature=0.75,
             response_mime_type="application/json",
         ),
     )

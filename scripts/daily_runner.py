@@ -215,6 +215,11 @@ def main():
 
     print(f"[Part {next_part_num}/{total_parts}] {part_data['title']}")
 
+    # Load character reference image if it exists from a prior part
+    character_ref = series_dir / "character_ref.jpg"
+    if not character_ref.exists():
+        character_ref = None
+
     titled_video = run_part(
         part_data, part_dir,
         series_title=active["series_title"],
@@ -223,7 +228,16 @@ def main():
         character_anchor=active.get("character_anchor", ""),
         ending=active.get("ending", ""),
         use_veo=args.veo,
+        character_ref=character_ref,
     )
+
+    # Persist reference image if this was part 1
+    if character_ref is None:
+        first_ref = sorted(part_dir.glob("image_000.jpg"))
+        if first_ref:
+            import shutil as _shutil
+            _shutil.copy(first_ref[0], series_dir / "character_ref.jpg")
+            print(f"  Character reference saved.")
 
     # ── Upload to YouTube as PRIVATE ──────────────────────────────────────────
     if not args.dry_run:
