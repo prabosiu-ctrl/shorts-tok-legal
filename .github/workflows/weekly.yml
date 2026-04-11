@@ -1,0 +1,92 @@
+name: Weekly Series Pipeline (DISABLED — replaced by daily_series.yml)
+
+on:
+  # Disabled: daily_series.yml handles generation now
+  workflow_dispatch:
+    inputs:
+      theme:
+        description: 'Story theme (leave blank to use themes.txt)'
+        required: false
+        default: ''
+      ending:
+        description: 'Ending type: happy, sad, bittersweet'
+        required: false
+        default: 'bittersweet'
+
+jobs:
+  generate-series:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install FFmpeg
+        run: sudo apt-get install -y ffmpeg
+
+      - name: Restore YouTube token
+        run: |
+          echo "${{ secrets.YOUTUBE_TOKEN_B64 }}" | base64 -d > youtube_token.pickle
+
+      - name: Restore OAuth client
+        run: |
+          echo '${{ secrets.OAUTH_CLIENT_JSON }}' > oauth_client.json
+
+      - name: Get next theme
+        id: theme
+        run: |
+          if [ -n "${{ github.event.inputs.theme }}" ]; then
+            echo "theme=${{ github.event.inputs.theme }}" >> $GITHUB_OUTPUT
+          else
+            THEME=$(python scripts/rotate_theme.py)
+            echo "theme=$THEME" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate series
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          THEME="${{ steps.theme.outputs.theme }}"
+          ENDING="${{ github.event.inputs.ending || 'bittersweet' }}"
+          if [ -n "$THEME" ]; then
+            python series_run.py --theme "$THEME" --ending "$ENDING" --no-publish
+          else
+            python series_run.py --ending "$ENDING" --no-publish
+          fi
+
+      - name: Publish series to YouTube
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          # Find the most recent series folder
+          SERIES_ID=$(ls -td output/series_* | head -1 | xargs basename)
+          echo "Publishing series: $SERIES_ID"
+          python series_publish.py --series "$SERIES_ID"
+
+      - name: Save updated themes.txt and queue.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add themes.txt queue.json || true
+          git diff --staged --quiet || git commit -m "chore: rotate theme + update queue [skip ci]"
+          git push
+
+      - name: Upload output as artifact (optional debug)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: series-output
+          path: output/
+          retention-days: 3

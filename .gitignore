@@ -1,0 +1,13 @@
+.env
+key.json
+oauth_client.json
+token.pickle
+youtube_token.pickle
+nl_token.pickle
+client_secret_*.json
+output/
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
