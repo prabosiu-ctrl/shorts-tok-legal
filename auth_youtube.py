@@ -11,7 +11,10 @@ import os
 import pickle
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+SCOPES = [
+    "https://www.googleapis.com/auth/youtube",          # read + update metadata, manage playlists
+    "https://www.googleapis.com/auth/youtube.upload",   # upload videos
+]
 OAUTH_CLIENT_FILE = "oauth_client.json"
 TOKEN_FILE = "youtube_token.pickle"
 

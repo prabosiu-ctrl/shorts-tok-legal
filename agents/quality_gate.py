@@ -160,9 +160,22 @@ def moderate_script(text: str) -> tuple[bool, list[str]]:
     Checks script for content policy violations before YouTube upload.
     Returns (is_safe, flagged_categories).
 
+    Two tiers:
+    - BLOCK (confidence > 0.85): content that will get the channel struck.
+      Terrorism, child safety, explicit sexual content, hate speech.
+    - WARN (confidence > 0.75): context-appropriate for dramatic storytelling.
+      Firearms, violence, drugs, health — logged but upload proceeds.
+
     Falls back to (True, []) if API unavailable or NL v2 not enabled.
-    Confidence threshold: 0.7 (70%).
     """
+    BLOCK_CATEGORIES = {
+        "Terrorism",
+        "Child Sexual Abuse and Exploitation",
+        "Explicit Sexual Content",
+        "Hate Speech",
+        "Human Trafficking",
+    }
+
     if not _available():
         return True, []
 
@@ -171,7 +184,7 @@ def moderate_script(text: str) -> tuple[bool, list[str]]:
     except requests.HTTPError as e:
         status = e.response.status_code if e.response is not None else "?"
         if status in (403, 404):
-            print(f"  Content moderation skipped (NL API v2 not enabled on this key: {status})")
+            print(f"  Content moderation skipped (NL API v2 not enabled: {status})")
         else:
             print(f"  Content moderation failed ({status}): {e}")
         return True, []
@@ -179,9 +192,17 @@ def moderate_script(text: str) -> tuple[bool, list[str]]:
         print(f"  Content moderation failed: {e}")
         return True, []
 
-    flagged = [
-        f"{cat['name']} ({cat['confidence']:.0%})"
-        for cat in result.get("moderationCategories", [])
-        if cat.get("confidence", 0) > 0.7
-    ]
-    return len(flagged) == 0, flagged
+    blocked = []
+    warned  = []
+    for cat in result.get("moderationCategories", []):
+        name       = cat.get("name", "")
+        confidence = cat.get("confidence", 0)
+        if name in BLOCK_CATEGORIES and confidence > 0.85:
+            blocked.append(f"{name} ({confidence:.0%})")
+        elif confidence > 0.75:
+            warned.append(f"{name} ({confidence:.0%})")
+
+    if warned:
+        print(f"  Content advisory (drama context, upload continues): {', '.join(warned)}")
+
+    return len(blocked) == 0, blocked

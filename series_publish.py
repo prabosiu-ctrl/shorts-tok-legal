@@ -65,6 +65,10 @@ def upload_video(youtube, video_path: Path, title: str, description: str, tags: 
 
     category_id = "24"  # Entertainment
 
+    # #Shorts must appear at the very start of the description for reliable classification
+    if is_short and not description.startswith("#Shorts"):
+        description = "#Shorts\n\n" + description
+
     body = {
         "snippet": {
             "title": title,
