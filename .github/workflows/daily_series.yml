@@ -59,17 +59,19 @@ jobs:
       - name: Write .env
         run: |
           cat > .env << 'EOF'
-          GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
-          GOOGLE_NL_KEY=${{ secrets.GOOGLE_NL_KEY }}
-          HF_TOKEN=${{ secrets.HF_TOKEN }}
-          REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
-          ElevenLabs_API_Key=${{ secrets.ELEVENLABS_API_KEY }}
-          VEO_MODEL=veo-3.1-lite-generate-preview
-          STYLE_PREFIX=${{ secrets.STYLE_PREFIX }}
-          EOF
+GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
+GOOGLE_NL_KEY=${{ secrets.GOOGLE_NL_KEY }}
+HF_TOKEN=${{ secrets.HF_TOKEN }}
+REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
+ElevenLabs_API_Key=${{ secrets.ELEVENLABS_API_KEY }}
+VEO_MODEL=veo-3.1-lite-generate-preview
+STYLE_PREFIX=${{ secrets.STYLE_PREFIX }}
+EOF
 
       - name: Get next theme
         id: theme
+        env:
+          PYTHONPATH: .
         run: |
           if [ -n "${{ github.event.inputs.theme }}" ]; then
             echo "theme=${{ github.event.inputs.theme }}" >> $GITHUB_OUTPUT
@@ -79,6 +81,8 @@ jobs:
           fi
 
       - name: Run daily runner
+        env:
+          PYTHONPATH: .
         run: |
           ARGS="--veo"
           THEME="${{ steps.theme.outputs.theme }}"

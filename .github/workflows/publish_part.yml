@@ -35,6 +35,7 @@ jobs:
       - name: Publish next queued part
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          PYTHONPATH: .
         run: python scripts/schedule_publish.py
 
       - name: Save updated queue.json
