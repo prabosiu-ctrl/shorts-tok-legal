@@ -1,4 +1,4 @@
-name: Daily Series Runner
+name: Generate Series Part
 
 # Generates one part per day (respects Veo 10 RPD limit).
 # Timeline per series:
