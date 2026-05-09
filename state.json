@@ -8,11 +8,13 @@
     "parts_generated": [
       1,
       2,
-      3
+      3,
+      4,
+      5
     ],
     "part_video_ids": [
       [
-        "kfRj_IYH8JI",
+        "trEkTI8rxb4",
         "Part 1: The Locked Door"
       ],
       [
@@ -24,8 +26,8 @@
         "Part 3: The Trade"
       ]
     ],
-    "longform_done": false,
+    "longform_done": true,
     "playlist_id": null,
-    "complete": false
+    "complete": true
   }
 }

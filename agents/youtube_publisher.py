@@ -13,6 +13,27 @@ TOKEN_FILE = "youtube_token.pickle"
 
 
 def get_youtube_service():
+    refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN")
+    if refresh_token:
+        client_id = os.environ.get("YOUTUBE_CLIENT_ID")
+        client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
+        if not (client_id and client_secret) and os.path.exists("oauth_client.json"):
+            with open("oauth_client.json") as f:
+                data = json.load(f)
+            installed = data.get("installed", data.get("web", {}))
+            client_id = installed["client_id"]
+            client_secret = installed["client_secret"]
+        from google.oauth2.credentials import Credentials
+        creds = Credentials(
+            token=None,
+            refresh_token=refresh_token,
+            client_id=client_id,
+            client_secret=client_secret,
+            token_uri="https://oauth2.googleapis.com/token",
+        )
+        creds.refresh(Request())
+        return build("youtube", "v3", credentials=creds)
+
     if not os.path.exists(TOKEN_FILE):
         raise FileNotFoundError(
             f"{TOKEN_FILE} not found. Run: python auth_youtube.py"

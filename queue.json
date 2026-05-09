@@ -1,10 +1,6 @@
 {
   "pending": [
     {
-      "video_id": "trEkTI8rxb4",
-      "label": "Part 1: The Locked Door"
-    },
-    {
       "video_id": "SfjD6ZeOdYA",
       "label": "Part 2: The Auction"
     },
@@ -13,7 +9,12 @@
       "label": "Part 3: The Trade"
     }
   ],
-  "published": [],
+  "published": [
+    {
+      "video_id": "trEkTI8rxb4",
+      "label": "Part 1: The Locked Door"
+    }
+  ],
   "series_id": "series_20260409_234023",
   "series_title": "The Spare Key"
 }
