@@ -6,8 +6,6 @@ from pathlib import Path
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-from google import genai
-from google.genai import types
 
 TOKEN_FILE = "youtube_token.pickle"
 
@@ -62,6 +60,9 @@ def generate_metadata(
     Produces an emotionally charged title, scroll-stopping description,
     and 12-15 targeted tags mixing broad emotion, story-type, and format keywords.
     """
+    from google import genai
+    from google.genai import types
+
     api_key = os.environ.get("GOOGLE_API_KEY")
     client = genai.Client(api_key=api_key)
 
