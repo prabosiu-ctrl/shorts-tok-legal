@@ -30,13 +30,12 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-publish.txt
 
-      - name: Restore OAuth client
-        run: echo '${{ secrets.OAUTH_CLIENT_JSON }}' > oauth_client.json
-
       - name: Publish next queued part
         env:
           PYTHONPATH: .
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
         run: python scripts/schedule_publish.py
 
       - name: Save updated queue.json

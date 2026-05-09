@@ -16,11 +16,19 @@ def get_youtube_service():
         client_id = os.environ.get("YOUTUBE_CLIENT_ID")
         client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
         if not (client_id and client_secret) and os.path.exists("oauth_client.json"):
-            with open("oauth_client.json") as f:
-                data = json.load(f)
-            installed = data.get("installed", data.get("web", {}))
-            client_id = installed["client_id"]
-            client_secret = installed["client_secret"]
+            try:
+                with open("oauth_client.json") as f:
+                    data = json.load(f)
+                installed = data.get("installed", data.get("web", {}))
+                client_id = client_id or installed.get("client_id")
+                client_secret = client_secret or installed.get("client_secret")
+            except (json.JSONDecodeError, KeyError):
+                pass
+        if not (client_id and client_secret):
+            raise EnvironmentError(
+                "YouTube client credentials missing. Set YOUTUBE_CLIENT_ID and "
+                "YOUTUBE_CLIENT_SECRET env vars, or provide a valid oauth_client.json."
+            )
         from google.oauth2.credentials import Credentials
         creds = Credentials(
             token=None,
